@@ -128,13 +128,12 @@ void	exec_last(t_data *lst, char **env)
 
 int	main(int ac, char **av, char **env)
 {
-	int in;
 	char **buffer = NULL;
 	t_data *lst = init_list(ac, av);
 	t_data *tmp = lst;
 	while (lst)
 	{
-		in = dup(0);
+		int in = dup(0);
 		if (in == -1)
 			err_fatal();
 		while (lst->sep && !strcmp(lst->sep, "|"))
@@ -146,7 +145,6 @@ int	main(int ac, char **av, char **env)
 			err_fatal();
 		close(in);
 		exec_last(lst, env);
-		char *wd = getcwd(NULL, 0);
 		lst = lst->next;
 	}
 	return (0);
