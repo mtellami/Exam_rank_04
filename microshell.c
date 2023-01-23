@@ -6,7 +6,7 @@
 /*   By: mtellami <mtellami@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/01/11 13:36:00 by mtellami          #+#    #+#             */
-/*   Updated: 2023/01/23 00:02:34 by mtellami         ###   ########.fr       */
+/*   Updated: 2023/01/23 04:11:32 by mtellami         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,24 +14,20 @@
 
 int	count_lines(int ac, char **av)
 {
-	int	i = 1;
+	int	i = 0;
 	int	size = 1;
-	while (i < ac)
-	{
+	while (++i < ac)
 		if (!strcmp(av[i], ";"))
 			size++;
-		i++;
-	}
 	return (size);
 }
 
 char	***init_buffer(int ac, char **av)
 {
-	int size = count_lines(ac, av);
-	char	***lines = malloc(sizeof(char **) * (size + 1));
-	if (!lines)
+	char ***lines;
+	if (!(lines = malloc(sizeof(char **) * (count_lines(ac, av) + 1))))
 		exit_fatal();
-	char	**buffer = NULL;
+	char **buffer = NULL;
 	int i = 1;
 	int j = 0;
 	while (i < ac)
@@ -40,7 +36,8 @@ char	***init_buffer(int ac, char **av)
 			buffer = arr_concate(buffer, av[i++]);
 		lines[j++] = buffer;
 		buffer = NULL;
-		i++;
+		if (i < ac)
+			i++;
 	}
 	lines[j] = NULL;
 	return (lines);
@@ -79,10 +76,11 @@ void	addback(t_data 	**lst, t_data *node)
 t_data	*init_list(char **buffer)
 {
 	t_data	*lst = NULL;
-	char	**args = NULL;
+	char	**args;
 	int	i = 0;
 	while (buffer[i])
 	{
+		args = NULL;
 		while (buffer[i] && strcmp(buffer[i], "|"))
 			args = arr_concate(args, buffer[i++]);
 		t_data	*node = newnode(args);
@@ -128,6 +126,7 @@ void	exec_line(t_data *data, char **env)
 		if (!pid)
 			execve(data->path, data->args, env);
 		waitpid(pid, NULL, 0);
+		exit(0);
 	}
 	waitpid(id, NULL, 0);
 }
@@ -160,5 +159,6 @@ int	main(int argc, char **argv, char **env)
 		exec_line(head, env);
 		// clear_list(head);
 	}
+	int id = getpid();
 	return (0);
 }
