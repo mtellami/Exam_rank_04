@@ -6,7 +6,7 @@
 /*   By: mtellami <mtellami@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/01/11 13:36:00 by mtellami          #+#    #+#             */
-/*   Updated: 2023/01/23 04:11:32 by mtellami         ###   ########.fr       */
+/*   Updated: 2023/01/23 07:40:58 by mtellami         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,8 +24,8 @@ int	count_lines(int ac, char **av)
 
 char	***init_buffer(int ac, char **av)
 {
-	char ***lines;
-	if (!(lines = malloc(sizeof(char **) * (count_lines(ac, av) + 1))))
+	char ***lines = malloc(sizeof(char **) * (count_lines(ac, av) + 1));
+	if (!lines)
 		exit_fatal();
 	char **buffer = NULL;
 	int i = 1;
@@ -91,44 +91,92 @@ t_data	*init_list(char **buffer)
 	return (lst);
 }
 
-void	exec_line(t_data *data, char **env)
+void	execution(t_data *data, char **env)
 {
-	int id = fork();
-	int pid;
-	if (!id)
+	if (!strcmp(data->path, "cd"))
 	{
-		while (data->next)
+		if (ft_tabsize(data->args) != 2)
 		{
-			int fd[2];
-			if (pipe(fd) == -1)
-				exit_fatal();
-			pid = fork();
-			if (pid == -1)
-				exit_fatal();
-			if (!pid)
-			{
-				close(fd[0]);
-				if (dup2(fd[1], STDOUT_FILENO) == -1)
-					exit_fatal();
-				close(fd[1]);
-				execve(data->path, data->args, env);
-			}
-			close(fd[1]);
-			if (dup2(fd[0], STDIN_FILENO) == -1)
-				exit_fatal();
-			close(fd[0]);
-			waitpid(pid, NULL, 0);
-			data = data->next;
+			write(2, "error: cd: bad arguments\n", 26);
+			exit(1);
 		}
-		pid = fork();
+		else
+		{
+			if ((chdir(data->args[1])) == -1)
+			{
+				write(2, "error: cd: cannot change directory to ", 38);
+				write(2, data->args[1], ft_strlen(data->args[1]));
+				write(2, "\n", 1);
+				exit(1);
+			}
+			exit(0);
+		}
+	}
+	else
+	{
+		if ((execve(data->path, data->args, env)) == -1)
+		{
+			write(2, "error: cannot execute ", 22);
+			write(2, data->path, ft_strlen(data->path));
+			write(2, "\n", 1);
+			exit(0);
+		}
+	}
+}
+
+void	multi_pipes(t_data *data, char **env)
+{
+	while (data->next)
+	{
+		int fd[2];
+		if (pipe(fd) == -1)
+			exit_fatal();
+		int pid = fork();
 		if (pid == -1)
 			exit_fatal();
 		if (!pid)
-			execve(data->path, data->args, env);
-		waitpid(pid, NULL, 0);
+		{
+			close(fd[0]);
+			if (dup2(fd[1], 1) == -1)
+				exit_fatal();
+			close(fd[1]);
+			execution(data, env);
+		}
+		close(fd[1]);
+		if (dup2(fd[0], 0) == -1)
+			exit_fatal();
+		close(fd[0]);
+		int stat;
+		waitpid(pid, &stat, 0);
+		if (stat)
+			exit(stat);
+		data = data->next;
+	}
+}
+
+void	exec_line(t_data *data, char **env)
+{
+	int stat;
+	int id = fork();
+	if (id == -1)
+		exit_fatal();
+	if (!id)
+	{
+		multi_pipes(data, env);
+		data = lastnode(data);
+		int pid = fork();
+		if (pid == -1)
+			exit_fatal();
+		if (!pid)
+			execution(data, env);
+		waitpid(pid, &stat, 0);
+		if (stat)
+			exit(stat);
 		exit(0);
 	}
-	waitpid(id, NULL, 0);
+	waitpid(id, &stat, 0);
+	if (stat)
+		exit(stat);
 }
 
 void	clear_list(t_data *lst)
@@ -157,8 +205,7 @@ int	main(int argc, char **argv, char **env)
 	{
 		t_data	*head = init_list(buffer[i++]);
 		exec_line(head, env);
-		// clear_list(head);
+		clear_list(head);
 	}
-	int id = getpid();
 	return (0);
 }

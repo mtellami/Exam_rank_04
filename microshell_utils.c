@@ -6,7 +6,7 @@
 /*   By: mtellami <mtellami@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/01/22 19:53:10 by mtellami          #+#    #+#             */
-/*   Updated: 2023/01/23 03:57:34 by mtellami         ###   ########.fr       */
+/*   Updated: 2023/01/23 07:09:35 by mtellami         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -55,18 +55,16 @@ char	**arr_concate(char **tab, char *str)
 {
 	if (!tab)
 	{
-		tab = malloc(sizeof(char *));
+		if (!(tab = malloc(sizeof(char *))))
+			exit_fatal();
 		tab[0] = NULL;
 	}
+	int i = -1;
 	char **arr = malloc(sizeof(char *) * (ft_tabsize(tab) + 2));
-	int		i = 0;
 	if (!arr)
 		exit_fatal();
-	while (tab[i])
-	{
+	while (tab[++i])
 		arr[i] = ft_strdup(tab[i]);
-		i++;
-	}
 	arr[i++] = ft_strdup(str);
 	arr[i] = NULL;
 	ft_freearr(tab);
