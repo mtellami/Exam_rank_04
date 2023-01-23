@@ -6,206 +6,159 @@
 /*   By: mtellami <mtellami@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/01/11 13:36:00 by mtellami          #+#    #+#             */
-/*   Updated: 2023/01/23 07:40:58 by mtellami         ###   ########.fr       */
+/*   Updated: 2023/01/23 11:35:48 by mtellami         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "microshell.h"
 
-int	count_lines(int ac, char **av)
+t_data *newnode(char **args, char *sep)
 {
-	int	i = 0;
-	int	size = 1;
-	while (++i < ac)
-		if (!strcmp(av[i], ";"))
-			size++;
-	return (size);
-}
-
-char	***init_buffer(int ac, char **av)
-{
-	char ***lines = malloc(sizeof(char **) * (count_lines(ac, av) + 1));
-	if (!lines)
-		exit_fatal();
-	char **buffer = NULL;
-	int i = 1;
-	int j = 0;
-	while (i < ac)
-	{
-		while (i < ac && strcmp(av[i], ";"))
-			buffer = arr_concate(buffer, av[i++]);
-		lines[j++] = buffer;
-		buffer = NULL;
-		if (i < ac)
-			i++;
-	}
-	lines[j] = NULL;
-	return (lines);
-}
-
-t_data	*newnode(char **args)
-{
-	t_data	*new = malloc(sizeof(t_data));
+	t_data  *new = malloc(sizeof(t_data));
 	if (!new)
-		exit_fatal();
+		err_fatal();
 	new->args = args;
-	new->path = args[0];
- 	new->next = NULL;
+	new->sep = sep;
+	new->next = NULL;
 	return (new);
 }
 
-t_data	*lastnode(t_data *head)
+t_data	*lastnode(t_data *lst)
 {
-	while (head->next)
-		head = head->next;
-	return (head);
+	while (lst->next)
+		lst = lst->next;
+	return (lst);
 }
 
-void	addback(t_data 	**lst, t_data *node)
+void	addback(t_data **lst, t_data  *node)
 {
-	t_data	*tmp = *lst;
 	if (*lst)
-	{
-		tmp = lastnode(tmp);
-		tmp->next = node;
-	}
+		lastnode(*lst)->next = node;
 	else
 		*lst = node;
 }
 
-t_data	*init_list(char **buffer)
+t_data	*init_list(int ac, char **av)
 {
-	t_data	*lst = NULL;
-	char	**args;
-	int	i = 0;
-	while (buffer[i])
+	t_data *lst = NULL;
+	int i = 1;
+	while (i < ac)
 	{
-		args = NULL;
-		while (buffer[i] && strcmp(buffer[i], "|"))
-			args = arr_concate(args, buffer[i++]);
-		t_data	*node = newnode(args);
+		char **buffer = NULL;
+		while (i < ac && strcmp(av[i], "|") && strcmp(av[i], ";"))
+			buffer = arr_concate(buffer, av[i++]);
+		t_data *node = newnode(buffer, av[i]);
 		addback(&lst, node);
-		if (buffer[i])
-			i++;
+		i++;
 	}
 	return (lst);
 }
 
-void	execution(t_data *data, char **env)
+void	re_cd(t_data *data)
 {
-	if (!strcmp(data->path, "cd"))
-	{
-		if (ft_tabsize(data->args) != 2)
-		{
-			write(2, "error: cd: bad arguments\n", 26);
-			exit(1);
-		}
-		else
-		{
-			if ((chdir(data->args[1])) == -1)
-			{
-				write(2, "error: cd: cannot change directory to ", 38);
-				write(2, data->args[1], ft_strlen(data->args[1]));
-				write(2, "\n", 1);
-				exit(1);
-			}
-			exit(0);
-		}
-	}
+	if (ft_tabsize(data->args) != 2)
+		write(2, "error: cd: bad arguments\n", 26);
 	else
 	{
-		if ((execve(data->path, data->args, env)) == -1)
+		if ((chdir(data->args[1])) == -1)
 		{
-			write(2, "error: cannot execute ", 22);
-			write(2, data->path, ft_strlen(data->path));
+			write(2, "error: cd: cannot change directory to ", 38);
+			write(2, data->args[1], ft_strlen(data->args[1]));
 			write(2, "\n", 1);
-			exit(0);
 		}
 	}
 }
 
-void	multi_pipes(t_data *data, char **env)
+void	execution(t_data *lst, char **env)
 {
-	while (data->next)
+	if ((execve(lst->args[0], lst->args, env)) == -1)
 	{
-		int fd[2];
+		write(2, "error: cannot execute ", 22);
+		write(2, lst->args[0], ft_strlen(lst->args[0]));
+		write(2, "\n", 1);
+		exit(1);
+	}
+}
+
+void	multi_pipe(t_data *lst, char **env)
+{
+	int	fd[2];
+	if (!strcmp(lst->args[0], "cd"))
+		re_cd(lst);
+	else
+	{
 		if (pipe(fd) == -1)
-			exit_fatal();
+			err_fatal();
 		int pid = fork();
 		if (pid == -1)
-			exit_fatal();
+			err_fatal();
 		if (!pid)
 		{
 			close(fd[0]);
 			if (dup2(fd[1], 1) == -1)
-				exit_fatal();
+				err_fatal();
 			close(fd[1]);
-			execution(data, env);
+			execution(lst, env);
 		}
 		close(fd[1]);
 		if (dup2(fd[0], 0) == -1)
-			exit_fatal();
+			err_fatal();
 		close(fd[0]);
-		int stat;
-		waitpid(pid, &stat, 0);
-		if (stat)
-			exit(stat);
-		data = data->next;
+		waitpid(pid, NULL, 0);
 	}
 }
 
-void	exec_line(t_data *data, char **env)
+void	exec_last(t_data *lst, char **env)
 {
 	int stat;
-	int id = fork();
-	if (id == -1)
-		exit_fatal();
-	if (!id)
+	if (!strcmp(lst->args[0], "cd"))
+		re_cd(lst);
+	else
 	{
-		multi_pipes(data, env);
-		data = lastnode(data);
 		int pid = fork();
 		if (pid == -1)
-			exit_fatal();
+			err_fatal();
 		if (!pid)
-			execution(data, env);
+			execution(lst, env);
 		waitpid(pid, &stat, 0);
 		if (stat)
 			exit(stat);
-		exit(0);
 	}
-	waitpid(id, &stat, 0);
-	if (stat)
-		exit(stat);
 }
 
-void	clear_list(t_data *lst)
+int	main(int ac, char **av, char **env)
 {
-	t_data *ptr = lst;
-	while (ptr)
-	{
-		ft_freearr(ptr->args);
-		ptr = ptr->next;
-	}
-	t_data	*tmp;
+	int in;
+	char **buffer = NULL;
+	t_data *lst = init_list(ac, av);
+	t_data *tmp = lst;
 	while (lst)
 	{
-		tmp = lst;
+		in = dup(0);
+		if (in == -1)
+			err_fatal();
+		while (lst->sep && !strcmp(lst->sep, "|"))
+		{
+			multi_pipe(lst, env);
+			lst = lst->next;
+		}
+		if ((dup2(0, in)) == -1)
+			err_fatal();
+		close(in);
+		exec_last(lst, env);
+		char *wd = getcwd(NULL, 0);
 		lst = lst->next;
-		free(tmp);
-		tmp = NULL;
-	}
-}
-
-int	main(int argc, char **argv, char **env)
-{
-	char	***buffer = init_buffer(argc, argv);
-	int	i = 0;
-	while (buffer[i])
-	{
-		t_data	*head = init_list(buffer[i++]);
-		exec_line(head, env);
-		clear_list(head);
 	}
 	return (0);
 }
+
+/*
+	- one linked list
+	 + char **args;
+	 + char *path;
+	 + char *separator
+	 	- condition ; 
+		 + if separator is NULL
+		 + if separator is ";"
+		 + is separator is "|"
+*/

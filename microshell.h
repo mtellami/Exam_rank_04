@@ -6,7 +6,7 @@
 /*   By: mtellami <mtellami@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/01/11 13:35:38 by mtellami          #+#    #+#             */
-/*   Updated: 2023/01/23 04:15:13 by mtellami         ###   ########.fr       */
+/*   Updated: 2023/01/23 09:50:53 by mtellami         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,7 +22,7 @@
 typedef struct s_data
 {
 	char			**args;
-	char			*path;
+	char			*sep;
 	struct s_data	*next;
 }	t_data;
 
@@ -32,6 +32,6 @@ int		ft_tabsize(char **tab);
 char 	*ft_strdup(char *str);
 void	ft_freearr(char **arr);
 char	**arr_concate(char **tab, char *str);
-void	exit_fatal(void);
+void	err_fatal(void);
 
 #endif

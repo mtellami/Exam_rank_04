@@ -6,7 +6,7 @@
 /*   By: mtellami <mtellami@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/01/22 19:53:10 by mtellami          #+#    #+#             */
-/*   Updated: 2023/01/23 07:09:35 by mtellami         ###   ########.fr       */
+/*   Updated: 2023/01/23 09:51:27 by mtellami         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -32,7 +32,7 @@ char 	*ft_strdup(char *str)
 {
 	char	*dup = malloc(sizeof(char) * (ft_strlen(str) + 1));
 	if (!dup)
-		exit_fatal();
+		err_fatal();
 	int i = 0;
 	while (str[i])
 	{
@@ -56,13 +56,13 @@ char	**arr_concate(char **tab, char *str)
 	if (!tab)
 	{
 		if (!(tab = malloc(sizeof(char *))))
-			exit_fatal();
+			err_fatal();
 		tab[0] = NULL;
 	}
 	int i = -1;
 	char **arr = malloc(sizeof(char *) * (ft_tabsize(tab) + 2));
 	if (!arr)
-		exit_fatal();
+		err_fatal();
 	while (tab[++i])
 		arr[i] = ft_strdup(tab[i]);
 	arr[i++] = ft_strdup(str);
@@ -71,7 +71,7 @@ char	**arr_concate(char **tab, char *str)
 	return (arr);
 }
 
-void	exit_fatal(void)
+void	err_fatal(void)
 {
 	write(2, "error: fatal\n", 13);
 	exit(1);
