@@ -151,14 +151,3 @@ int	main(int ac, char **av, char **env)
 	}
 	return (0);
 }
-
-/*
-	- one linked list
-	 + char **args;
-	 + char *path;
-	 + char *separator
-	 	- condition ; 
-		 + if separator is NULL
-		 + if separator is ";"
-		 + is separator is "|"
-*/
