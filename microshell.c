@@ -6,7 +6,7 @@
 /*   By: mtellami <mtellami@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/01/11 13:36:00 by mtellami          #+#    #+#             */
-/*   Updated: 2023/01/23 11:35:48 by mtellami         ###   ########.fr       */
+/*   Updated: 2023/02/02 16:16:15 by mtellami         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -128,24 +128,23 @@ void	exec_last(t_data *lst, char **env)
 
 int	main(int ac, char **av, char **env)
 {
-	char **buffer = NULL;
 	t_data *lst = init_list(ac, av);
 	t_data *tmp = lst;
-	while (lst)
+	while (tmp)
 	{
 		int in = dup(0);
 		if (in == -1)
 			err_fatal();
-		while (lst->sep && !strcmp(lst->sep, "|"))
+		while (tmp->sep && !strcmp(tmp->sep, "|"))
 		{
-			multi_pipe(lst, env);
-			lst = lst->next;
+			multi_pipe(tmp, env);
+			tmp = tmp->next;
 		}
 		if ((dup2(0, in)) == -1)
 			err_fatal();
 		close(in);
-		exec_last(lst, env);
-		lst = lst->next;
+		exec_last(tmp, env);
+		tmp = tmp->next;
 	}
 	return (0);
 }
